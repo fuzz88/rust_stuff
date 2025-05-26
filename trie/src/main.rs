@@ -31,19 +31,22 @@ impl Trie {
 
     fn insert(&mut self, word: &str) {
         self.current_node = Rc::clone(&self.root);
+
         for ch in word.chars() {
             println!("{}", ch);
+
             self.current_node = self.insert_letter(ch);
             println!("{:p}", self.current_node);
         }
-        (*self.current_node.borrow_mut()).is_terminal = true;
+
+        self.current_node.borrow_mut().is_terminal = true;
 
         println!("-----");
     }
 
     fn insert_letter(&self, letter: char) -> TrieNode {
-        for node in &(*(*self.current_node).borrow()).children {
-            match (*node.borrow()).value {
+        for node in &self.current_node.borrow().children {
+            match node.borrow().value {
                 Some(l) if l == letter => {
                     return Rc::clone(node);
                 }
@@ -61,37 +64,45 @@ impl Trie {
 
         println!("new node: {:p}", Rc::clone(new_node));
 
-        (*(*self.current_node).borrow_mut())
+        self.current_node
+            .borrow_mut()
             .children
             .push(Rc::clone(new_node));
 
         Rc::clone(&new_node)
     }
 
-    fn print_node(&self, node: TrieNode, shift: &str) {
+    fn print(&self) {
+        Self::print_node(Rc::clone(&self.root), " ");
+    }
+
+    fn print_node(node: TrieNode, shift: &str) {
         println!(
             "{shift}{:?} {}",
-            (*node.borrow()).value,
-            (*node.borrow()).is_terminal,
+            node.borrow().value,
+            node.borrow().is_terminal,
         );
-        for current_node in &(*node.borrow()).children {
-            self.print_node(Rc::clone(current_node), &(shift.to_owned() + "  "));
+        for child in &node.borrow().children {
+            Self::print_node(Rc::clone(child), &(shift.to_owned() + "  "));
         }
     }
 
-    fn search(&mut self, word: &str) -> bool {
-        self.current_node = Rc::clone(&self.root);
-        'chars: for ch in word.chars() {
-            let children = &(*self.current_node).borrow().children.clone();
-            for node in children {
-                if (*node).borrow().value == Some(ch) {
-                    self.current_node = Rc::clone(node);
-                    continue 'chars;
+    fn search(&self, word: &str) -> bool {
+        Self::search_recursive(&self.root, word.chars())
+    }
+
+    fn search_recursive(node: &TrieNode, mut chars: std::str::Chars) -> bool {
+        match chars.next() {
+            Some(ch) => {
+                for child in &node.borrow().children {
+                    if child.borrow().value == Some(ch) {
+                        return Self::search_recursive(child, chars);
+                    }
                 }
+                false
             }
-            return false;
+            None => node.borrow().is_terminal,
         }
-        (*self.current_node).borrow().is_terminal
     }
 }
 
@@ -106,10 +117,10 @@ fn main() {
     trie.insert("hill");
     trie.insert("hi!");
 
+    println!("\nTrie:\n");
+    trie.print();
+
     println!("{}", trie.search("hello"));
     println!("{}", trie.search("hellobabababa"));
     println!("{}", trie.search("work"));
-    //println!("\nTrie:\n");
-    //trie.print_node(Rc::clone(&trie.root), "");
-
 }
