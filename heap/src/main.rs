@@ -182,7 +182,7 @@ fn main() {
 
     numbers_heap.print();
 
-    numbers_heap.heapify_optimized();
+    numbers_heap.heapify();
 
     numbers_heap.print();
 }
