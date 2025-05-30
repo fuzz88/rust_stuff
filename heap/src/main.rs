@@ -24,6 +24,7 @@ impl<T: PartialOrd + Display + Copy> Heap<T> {
         self.sift_down(0, self.items.len() - 1);
     }
 
+    #[inline(always)]
     fn sift_down(&mut self, start_pos: usize, pos: usize) {
         #[cfg(not(test))]
         println!("{} {} siftdown", start_pos, pos);
@@ -213,8 +214,17 @@ mod tests {
     }
 
     #[bench]
+    fn bench_heapify_optimized(b: &mut Bencher) {
+        let numbers = generate_random_vec(2_000_000_000);
+
+        b.iter(|| {
+            let mut numbers_heap = Heap::new_from(&numbers);
+            numbers_heap.heapify_optimized()
+        });
+    }
+    #[bench]
     fn bench_heapify_not_optimized(b: &mut Bencher) {
-        let numbers = generate_random_vec(2048);
+        let numbers = generate_random_vec(2_000_000_000);
 
         b.iter(|| {
             let mut numbers_heap = Heap::new_from(&numbers);
@@ -238,15 +248,6 @@ mod tests {
             let mut numbers_heap = Heap::new_from(&numbers);
             numbers_heap.heapify();
             for _ in 0..2047 {numbers_heap.pop();};
-        });
-    }
-    #[bench]
-    fn bench_heapify_optimized(b: &mut Bencher) {
-        let numbers = generate_random_vec(2048);
-
-        b.iter(|| {
-            let mut numbers_heap = Heap::new_from(&numbers);
-            numbers_heap.heapify_optimized()
         });
     }
 }
