@@ -2,7 +2,7 @@ import timeit
 import random
 from copy import deepcopy
 
-# Comparison counter class
+# Comparison counter
 class ComparisonCounter:
     def __init__(self):
         self.count = 0
@@ -15,12 +15,13 @@ class ComparisonCounter:
         self.count += 1
         return a <= b
 
-# Reference implementation (with _siftdown)
-def _siftup_with_siftdown(heap, pos, counter):
+# Optimized siftup with inlined siftdown
+def _siftup_with_siftdown_inlined(heap, pos, counter):
     endpos = len(heap)
     startpos = pos
     newitem = heap[pos]
     childpos = 2 * pos + 1
+
     while childpos < endpos:
         rightpos = childpos + 1
         if rightpos < endpos and not counter.lt(heap[childpos], heap[rightpos]):
@@ -28,26 +29,25 @@ def _siftup_with_siftdown(heap, pos, counter):
         heap[pos] = heap[childpos]
         pos = childpos
         childpos = 2 * pos + 1
-    heap[pos] = newitem
-    _siftdown(heap, startpos, pos, counter)
 
-def _siftdown(heap, startpos, pos, counter):
-    newitem = heap[pos]
+    heap[pos] = newitem
+
+    # Inlined siftdown
     while pos > startpos:
         parentpos = (pos - 1) >> 1
-        parent = heap[parentpos]
-        if counter.lt(newitem, parent):
-            heap[pos] = parent
+        if counter.lt(newitem, heap[parentpos]):
+            heap[pos] = heap[parentpos]
             pos = parentpos
-            continue
-        break
+        else:
+            break
     heap[pos] = newitem
 
-# Alternative implementation (early break, no _siftdown)
-def _siftup_no_siftdown(heap, pos, counter):
+# Optimized alternative siftup (no siftdown)
+def _siftup_no_siftdown_optimized(heap, pos, counter):
     endpos = len(heap)
     newitem = heap[pos]
     childpos = 2 * pos + 1
+
     while childpos < endpos:
         rightpos = childpos + 1
         if rightpos < endpos and counter.lt(heap[rightpos], heap[childpos]):
@@ -57,50 +57,44 @@ def _siftup_no_siftdown(heap, pos, counter):
         heap[pos] = heap[childpos]
         pos = childpos
         childpos = 2 * pos + 1
+
     heap[pos] = newitem
 
 # Heapify functions
 def heapify_with_siftdown(lst):
     counter = ComparisonCounter()
     n = len(lst)
-    for i in reversed(range(n // 2)):
-        _siftup_with_siftdown(lst, i, counter)
+    for i in range(n // 2 - 1, -1, -1):
+        _siftup_with_siftdown_inlined(lst, i, counter)
     return counter.count
 
 def heapify_no_siftdown(lst):
     counter = ComparisonCounter()
     n = len(lst)
-    for i in reversed(range(n // 2)):
-        _siftup_no_siftdown(lst, i, counter)
+    for i in range(n // 2 - 1, -1, -1):
+        _siftup_no_siftdown_optimized(lst, i, counter)
     return counter.count
 
 # Benchmarking
 def benchmark():
     lst = [random.randint(0, 10000) for _ in range(1_000_000)]
 
-    # Deepcopy for timing and comparison
-    lst1 = deepcopy(lst)
-    lst2 = deepcopy(lst)
-
-    # Measure time
     def timed_heapify_with():
-        lst_copy = deepcopy(lst1)
-        heapify_with_siftdown(lst_copy)
+        heapify_with_siftdown(lst.copy())
 
     def timed_heapify_no():
-        lst_copy = deepcopy(lst2)
-        heapify_no_siftdown(lst_copy)
+        heapify_no_siftdown(lst.copy())
 
     time_with = timeit.timeit(timed_heapify_with, number=10)
     time_no = timeit.timeit(timed_heapify_no, number=10)
 
-    # Measure comparisons (not averaged over 10 runs to avoid duplication)
-    comparisons_with = heapify_with_siftdown(deepcopy(lst1))
-    comparisons_no = heapify_no_siftdown(deepcopy(lst2))
+    # Only one run for comparison count
+    comparisons_with = heapify_with_siftdown(lst.copy())
+    comparisons_no = heapify_no_siftdown(lst.copy())
 
     # Output
-    print(f"With _siftdown:     {time_with:.6f} seconds, Comparisons: {comparisons_with}")
-    print(f"Without _siftdown:  {time_no:.6f} seconds, Comparisons: {comparisons_no}")
+    print(f"With siftdown inlined: {time_with:.6f} seconds, Comparisons: {comparisons_with}")
+    print(f"Without siftdown:      {time_no:.6f} seconds, Comparisons: {comparisons_no}")
 
 if __name__ == "__main__":
     benchmark()
