@@ -99,13 +99,8 @@ def benchmark():
     comparisons_no = heapify_no_siftdown(deepcopy(lst2))
 
     # Output
-    print("Heapify Performance Comparison (10 runs on list of 10,000 items):")
     print(f"With _siftdown:     {time_with:.6f} seconds, Comparisons: {comparisons_with}")
     print(f"Without _siftdown:  {time_no:.6f} seconds, Comparisons: {comparisons_no}")
-    if time_with < time_no:
-        print("Result: Reference implementation with _siftdown is faster.")
-    else:
-        print("Result: Alternative implementation without _siftdown is faster.")
 
 if __name__ == "__main__":
     benchmark()
