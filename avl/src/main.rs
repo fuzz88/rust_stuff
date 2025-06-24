@@ -6,7 +6,7 @@ type NodeRef<K, V> = Option<Box<Node<K, V>>>;
 struct Node<K, V> {
     key: K,
     value: V,
-    height: usize,
+    height: u8,
     left: NodeRef<K, V>,
     right: NodeRef<K, V>,
 }
