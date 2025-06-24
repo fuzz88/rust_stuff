@@ -103,6 +103,7 @@ impl<K: Ord + Clone + Debug, V: Clone + Debug> Node<K, V> {
             right.fix_height();
         }
         self.fix_height();
+        println!("rotated right");
     }
 
     fn rotate_left(&mut self) {
@@ -122,6 +123,7 @@ impl<K: Ord + Clone + Debug, V: Clone + Debug> Node<K, V> {
             left.fix_height();
         }
         self.fix_height();
+        println!("rotated left");
     }
 
     fn balance(&mut self) {
