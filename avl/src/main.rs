@@ -175,7 +175,7 @@ fn main() {
 
     if let Some(ref mut right) = root.right {
         right.left = node!(11, "go go");
-        right.right = node!(14, "boo");
+        right.right = node!(14, "booyaka");
     }
 
     root.in_order(&mut |key, value| println!("{key}: {value}"));
