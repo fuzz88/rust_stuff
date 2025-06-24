@@ -1,9 +1,16 @@
+use std::mem;
+use std::cmp::max;
+use std::clone::Clone;
 use std::fmt::Debug;
 
 type NodeRef<K, V> = Option<Box<Node<K, V>>>;
 
-#[derive(Debug)]
-struct Node<K, V> {
+#[derive(Debug, Clone)]
+struct Node<K, V>
+where
+    K: Clone,
+    V: Clone,
+{
     key: K,
     value: V,
     height: u8,
@@ -11,10 +18,10 @@ struct Node<K, V> {
     right: NodeRef<K, V>,
 }
 
-impl<K: Debug, V: Debug> Node<K, V> {
+impl<K: Clone + Debug, V: Clone + Debug> Node<K, V> {
     fn new(key: K, value: V) -> Self {
         Self {
-            key: key, 
+            key: key,
             value: value,
             height: 1,
             left: None,
@@ -32,6 +39,20 @@ impl<K: Debug, V: Debug> Node<K, V> {
         }
     }
 
+    fn print_keys(&self, level: usize) {
+        if let Some(left) = &self.left {
+            left.print_keys(level + 1);
+        }
+
+        (0..level).for_each(|_| print!("\t"));
+        println!("{:?}", self.key);
+
+        if let Some(right) = &self.right {
+            right.print_keys(level + 1);
+        }
+
+    }
+
     fn minimum(&self) -> &Node<K, V> {
         let mut current = self;
         while let Some(minimum) = &current.left {
@@ -46,6 +67,62 @@ impl<K: Debug, V: Debug> Node<K, V> {
             current = &maximum;
         }
         current
+    }
+
+    fn bfactor(&self) -> i8 {
+        match (&self.left, &self.right) {
+            (None, None) => 0,
+            (Some(left), Some(right)) => right.height as i8 - left.height as i8,
+            (Some(left), None) => -(left.height as i8),
+            (None, Some(right)) => right.height as i8,
+        }
+    }
+
+    fn fix_height(&mut self) {
+        match (&self.left, &self.right) {
+            (None, None) => self.height = 1,
+            (Some(left), Some(right)) => self.height = max(left.height, right.height) + 1,
+            (Some(left), None) => self.height = left.height + 1,
+            (None, Some(right)) => self.height = right.height + 1,
+        }
+    }
+
+    fn rotate_right(&mut self) {
+        let mut left = self.left.take().unwrap();
+
+        self.left = left.right.take();
+
+        let mut new_root = *left;
+        mem::swap(&mut self.key, &mut new_root.key);
+        mem::swap(&mut self.value, &mut new_root.value);
+        mem::swap(&mut self.left, &mut new_root.left);
+        mem::swap(&mut self.right, &mut new_root.right);
+
+        self.right = Some(Box::new(new_root.clone()));
+
+        if let Some(ref mut right) = self.right {
+            right.fix_height();
+        }
+        self.fix_height();
+    }
+
+    fn rotate_left(&mut self) {
+        let mut right = self.right.take().unwrap();
+
+        self.right = right.left.take();
+
+        let mut new_root = *right;
+        mem::swap(&mut self.key, &mut new_root.key);
+        mem::swap(&mut self.value, &mut new_root.value);
+        mem::swap(&mut self.left, &mut new_root.left);
+        mem::swap(&mut self.right, &mut new_root.right);
+
+        self.left = Some(Box::new(new_root.clone()));
+
+        if let Some(ref mut left) = self.left {
+            left.fix_height();
+        }
+        self.fix_height();
     }
 }
 
@@ -82,17 +159,35 @@ mod tests {
         }
         assert_eq!(node.maximum().key, 10);
     }
+}
 
-    #[test]
-    fn test_visit_all_nodes() {
-
-    }
+macro_rules! node {
+    ($key:literal, $value:literal) => {
+        Some(Box::new(Node::new($key, $value.to_string())))
+    };
 }
 
 fn main() {
-    let mut root = Some(Box::new(Node::new(10, "hey, boy!".to_string())));
+    let mut root = Box::new(Node::new(10, "hey, boy!".to_string()));
 
-    if let Some(ref mut r) = root {
-        r.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.left = node!(5, "yes");
+    root.right = node!(13, "boom");
+
+    if let Some(ref mut right) = root.right {
+        right.left = node!(11, "go go");
+        right.right = node!(14, "boo");
     }
+
+    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.print_keys(0);
+
+    root.rotate_left();
+
+    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.print_keys(0);
+
+    root.rotate_right();
+
+    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.print_keys(0);
 }
