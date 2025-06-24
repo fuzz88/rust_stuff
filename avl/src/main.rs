@@ -1,7 +1,7 @@
-use std::mem;
-use std::cmp::max;
 use std::clone::Clone;
+use std::cmp::max;
 use std::fmt::Debug;
+use std::mem;
 
 type NodeRef<K, V> = Option<Box<Node<K, V>>>;
 
@@ -18,7 +18,7 @@ where
     right: NodeRef<K, V>,
 }
 
-impl<K: Clone + Debug, V: Clone + Debug> Node<K, V> {
+impl<K: Ord + Clone + Debug, V: Clone + Debug> Node<K, V> {
     fn new(key: K, value: V) -> Self {
         Self {
             key: key,
@@ -29,11 +29,11 @@ impl<K: Clone + Debug, V: Clone + Debug> Node<K, V> {
         }
     }
 
-    fn in_order(&self, visit: &mut dyn FnMut(&K, &V)) {
+    fn in_order(&self, visit: &mut dyn FnMut(&K, &V, u8)) {
         if let Some(ref left) = self.left {
             left.in_order(visit);
         }
-        visit(&self.key, &self.value);
+        visit(&self.key, &self.value, self.height);
         if let Some(ref right) = self.right {
             right.in_order(visit);
         }
@@ -50,7 +50,6 @@ impl<K: Clone + Debug, V: Clone + Debug> Node<K, V> {
         if let Some(right) = &self.right {
             right.print_keys(level + 1);
         }
-
     }
 
     fn minimum(&self) -> &Node<K, V> {
@@ -124,8 +123,53 @@ impl<K: Clone + Debug, V: Clone + Debug> Node<K, V> {
         }
         self.fix_height();
     }
-}
 
+    fn balance(&mut self) {
+        self.fix_height();
+
+        if self.bfactor() == 2 {
+            if let Some(ref mut right) = self.right {
+                if right.bfactor() < 0 {
+                    right.rotate_right();
+                }
+            }
+            self.rotate_left();
+        } else if self.bfactor() == -2 {
+            if let Some(ref mut left) = self.left {
+                if left.bfactor() > 0 {
+                    left.rotate_left();
+                }
+            }
+            self.rotate_right();
+        }
+    }
+
+    fn insert(&mut self, key: K, value: V) {
+        if key < self.key {
+            match self.left {
+                Some(ref mut left_child) => {
+                    left_child.insert(key, value);
+                }
+                None => {
+                    self.left = Some(Box::new(Node::new(key, value)));
+                }
+            }
+        } else if key > self.key {
+            match self.right {
+                Some(ref mut right_child) => {
+                    right_child.insert(key, value);
+                }
+                None => {
+                    self.right = Some(Box::new(Node::new(key, value)));
+                }
+            }
+        } else {
+            self.value = value;
+        }
+        self.balance();
+    }
+
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,16 +222,21 @@ fn main() {
         right.right = node!(14, "booyaka");
     }
 
-    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
     root.print_keys(0);
 
     root.rotate_left();
 
-    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
     root.print_keys(0);
 
     root.rotate_right();
 
-    root.in_order(&mut |key, value| println!("{key}: {value}"));
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
+    root.print_keys(0);
+
+    root.insert(18, "hello".to_string());
+
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
     root.print_keys(0);
 }
