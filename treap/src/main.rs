@@ -1,6 +1,6 @@
 use std::cmp::Ord;
 use std::cmp::Ordering;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use rand;
 
@@ -12,7 +12,7 @@ struct Node<T: Ord + Clone + Debug> {
     right: Option<Box<Node<T>>>,
 }
 
-impl<T: Ord + Clone + Debug> Node<T> {
+impl<T: Ord + Clone + Debug + Display> Node<T> {
     fn new(key: T) -> Self {
         let priority = rand::random_range(0..1024);
         Node {
@@ -37,6 +37,7 @@ impl<T: Ord + Clone + Debug> Node<T> {
     }
 
     fn split(node: Option<Box<Node<T>>>, key: T) -> (Option<Box<Node<T>>>, Option<Box<Node<T>>>) {
+        println!("splitting {node:?} {key}");
         if let Some(mut n) = node {
             if key < n.key {
                 let (left, right) = Self::split(n.left.take(), key);
@@ -53,6 +54,7 @@ impl<T: Ord + Clone + Debug> Node<T> {
     }
 
     fn merge(left: Option<Box<Node<T>>>, right: Option<Box<Node<T>>>) -> Option<Box<Node<T>>> {
+        println!("merging {left:?} {right:?}");
         match (left, right) {
             (None, r) => r,
             (l, None) => l,
@@ -87,6 +89,7 @@ impl<T: Ord + Clone + Debug> Node<T> {
             Some(new_node)
         }
     }
+
     fn erase(node: Option<Box<Node<T>>>, key: T) -> Option<Box<Node<T>>> {
         if let Some(mut n) = node {
             match key.cmp(&n.key) {
@@ -117,7 +120,7 @@ impl<T: Ord + Clone + Debug> Node<T> {
 fn main() {
     let mut root: Option<Box<Node<i32>>> = None;
 
-    let values = vec![10, 5, 15, 3, 7, 12, 18];
+    let values = vec![10, 15, 7, 12, 18];
 
     for val in values {
         let new_node = Box::new(Node::new(val));
@@ -138,5 +141,6 @@ fn main() {
     }
 
     root = Node::erase(root, 15);
+    root = Node::erase(root, 10);
     Node::print_inorder(&root);
 }
