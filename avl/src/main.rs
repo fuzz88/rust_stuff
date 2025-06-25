@@ -171,6 +171,50 @@ impl<K: Ord + Clone + Debug, V: Clone + Debug> Node<K, V> {
         self.balance();
     }
 
+    fn delete(&mut self, key: K) {
+        let mut root = Some(Box::new(self.clone()));
+
+        Self::_delete(&mut root, key);
+
+        if let Some(new_root) = root {
+            *self = *new_root;
+        }
+    }
+
+    fn _delete(node: &mut NodeRef<K, V>, key: K) {
+        if let Some(n) = node {
+            if key < n.key {
+                Self::_delete(&mut n.left, key);
+            } else if key > n.key {
+                Self::_delete(&mut n.right, key);
+            } else {
+                match (n.left.take(), n.right.take()) {
+                    (None, None) => {
+                        *node = None;
+                        return; // no rebalance
+                    }
+                    (Some(child), None) | (None, Some(child)) => {
+                        *node = Some(child);
+                        return; // no rebalance 
+                    }
+                    (Some(left), Some(right)) => {
+                        let right_min = right.minimum();
+                        let successor_key = right_min.key.clone();
+                        let successor_value = right_min.value.clone();
+
+                        n.key = successor_key.clone();
+                        n.value = successor_value;
+
+                        let mut right_subtree = Some(right);
+                        Self::_delete(&mut right_subtree, successor_key);
+                        n.right = right_subtree;
+                        n.left = Some(left);
+                    }
+                }
+            }
+            n.balance();
+        }
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -238,6 +282,30 @@ fn main() {
     root.print_keys(0);
 
     root.insert(18, "hello".to_string());
+
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
+    root.print_keys(0);
+
+    root.delete(10);
+    root.delete(11);
+    root.delete(5);
+
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
+    root.print_keys(0);
+
+    for k in 10..25 {
+        root.insert(k, "data".to_string());
+    }
+
+    root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
+    root.print_keys(0);
+
+    root.delete(11);
+    root.delete(10);
+    root.delete(14);
+    root.delete(15);
+    root.delete(16);
+    root.delete(12);
 
     root.in_order(&mut |key, value, h| println!("{key}: {value} -- {h}"));
     root.print_keys(0);
